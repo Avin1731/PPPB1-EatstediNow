@@ -47,74 +47,55 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
 
-    // --- LOGIC PENENTUAN HALAMAN AWAL (User Baru vs Lama) ---
     // State untuk menyimpan halaman awal
     var startDestination by remember { mutableStateOf<String?>(null) }
 
-    // Cek status login sekali saat aplikasi dibuka
+    // Cek status login
     LaunchedEffect(Unit) {
         if (auth.currentUser != null) {
-            // Jika sudah login -> Langsung ke Home
             startDestination = Routes.HOME
         } else {
-            // Jika belum login -> Ke Onboarding dulu
             startDestination = Routes.ONBOARDING
         }
     }
 
-    // Tampilkan Loading (Spinning Circle) selagi aplikasi mengecek status login
-    // Ini mencegah layar putih berkedip (Screen Flicker)
     if (startDestination == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else {
-        // Navigasi Utama
         NavHost(navController = navController, startDestination = startDestination!!) {
 
-            // 1. ONBOARDING SCREEN
+            // 1. ONBOARDING
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(
-                    onLoginClick = {
-                        navController.navigate(Routes.LOGIN)
-                    },
-                    onRegisterClick = {
-                        navController.navigate(Routes.REGISTER)
-                    }
+                    onLoginClick = { navController.navigate(Routes.LOGIN) },
+                    onRegisterClick = { navController.navigate(Routes.REGISTER) }
                 )
             }
 
-            // 2. LOGIN SCREEN
+            // 2. LOGIN
             composable(Routes.LOGIN) {
                 LoginScreen(
-                    onBackClick = {
-                        // Kalau user tekan back di Login, kembali ke Onboarding atau keluar app
-                        navController.popBackStack()
-                    },
+                    onBackClick = { navController.popBackStack() },
                     onLoginSuccess = {
-                        // Login Sukses -> Masuk Home, Hapus history Onboarding/Login biar gak bisa back
                         navController.navigate(Routes.HOME) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
                         }
                     },
-                    onRegisterClick = {
-                        navController.navigate(Routes.REGISTER)
-                    }
+                    onRegisterClick = { navController.navigate(Routes.REGISTER) }
                 )
             }
 
-            // 3. REGISTER SCREEN
+            // 3. REGISTER
             composable(Routes.REGISTER) {
                 RegisterScreen(
                     onBackClick = { navController.popBackStack() },
-                    onRegisterSuccess = {
-                        // Register Sukses -> Arahkan ke Login
-                        navController.navigate(Routes.LOGIN)
-                    }
+                    onRegisterSuccess = { navController.navigate(Routes.LOGIN) }
                 )
             }
 
-            // 4. HOME SCREEN
+            // 4. HOME SCREEN (BAGIAN YANG ERROR TADI)
             composable(Routes.HOME) {
                 HomeScreen(
                     onFoodClick = { foodId ->
@@ -125,49 +106,92 @@ fun AppNavigation() {
                     },
                     onProfileClick = {
                         navController.navigate(Routes.PROFILE)
+                    },
+                    // --- INI YANG KURANG TADI ---
+                    onMenuClick = {
+                        navController.navigate(Routes.MENU)
                     }
                 )
             }
 
-            // 5. MENU DETAIL SCREEN
+            // 5. MENU SCREEN (HALAMAN BARU)
+            composable(Routes.MENU) {
+                MenuScreen(
+                    onFoodClick = { foodId ->
+                        navController.navigate("menu_detail/$foodId")
+                    },
+                    onCartClick = { navController.navigate(Routes.ORDER) },
+                    onProfileClick = { navController.navigate(Routes.PROFILE) },
+                    onHomeClick = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // 6. MENU DETAIL
             composable(
                 route = Routes.MENU_DETAIL,
                 arguments = listOf(navArgument("foodId") { type = NavType.IntType })
             ) { backStackEntry ->
                 val foodId = backStackEntry.arguments?.getInt("foodId")
-                // Mengambil data makanan dari list dummyFoods
                 val food = dummyFoods.find { it.id == foodId }
 
                 if (food != null) {
                     MenuDetailScreen(
                         food = food,
-                        onBack = { navController.popBackStack() },
-                        onAddToCart = {
-                            navController.navigate(Routes.ORDER)
+                        onBack = { navController.popBackStack() }, // Fungsi tombol Back
+                        onAddToCart = { 
+                            // Pindah ke halaman Order/Keranjang
+                            navController.navigate(Routes.ORDER) 
                         }
                     )
                 }
             }
 
-            // 6. ORDER SCREEN (KERANJANG)
+            // 7. ORDER SCREEN
             composable(Routes.ORDER) {
                 OrderScreen(
                     onBack = { navController.popBackStack() },
-                    onProcess = {
-                        // Disini nanti logika checkout
+                    onProcess = { /* Nanti lanjut ke pembayaran */ },
+                    // Tambahan Navigasi Bottom Bar:
+                    onHomeClick = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    },
+                    onMenuClick = {
+                        navController.navigate(Routes.MENU)
+                    },
+                    onProfileClick = {
+                        navController.navigate(Routes.PROFILE)
                     }
                 )
             }
 
-            // 7. PROFILE SCREEN (LOGOUT)
+            // 8. PROFILE SCREEN
             composable(Routes.PROFILE) {
-                ProfileScreen(onLogout = {
-                    auth.signOut() // Logout dari Firebase
-                    // Kembali ke Login, hapus semua history tumpukan layar
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
+                ProfileScreen(
+                    onLogout = {
+                        auth.signOut()
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    // Navigasi Bottom Bar
+                    onHomeClick = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
+                    },
+                    onMenuClick = {
+                        navController.navigate(Routes.MENU)
+                    },
+                    onCartClick = {
+                        navController.navigate(Routes.ORDER)
                     }
-                })
+                )
             }
         }
     }
