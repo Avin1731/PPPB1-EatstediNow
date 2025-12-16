@@ -17,24 +17,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.eatstedinow.model.dummyFoods
 import com.example.eatstedinow.screens.*
 import com.example.eatstedinow.ui.theme.EatsTediNowTheme
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 1. Pasang Splash Screen API sebelum super.onCreate
-        // Ini akan otomatis menghandle transisi dari Theme.App.Starting ke Theme aplikasi
         installSplashScreen()
-
         super.onCreate(savedInstanceState)
         setContent {
             EatsTediNowTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     AppNavigation()
                 }
             }
@@ -46,152 +39,97 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
-
-    // State untuk menyimpan halaman awal
     var startDestination by remember { mutableStateOf<String?>(null) }
 
-    // Cek status login
     LaunchedEffect(Unit) {
-        if (auth.currentUser != null) {
-            startDestination = Routes.HOME
-        } else {
-            startDestination = Routes.ONBOARDING
-        }
+        startDestination = if (auth.currentUser != null) Routes.HOME else Routes.ONBOARDING
     }
 
     if (startDestination == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-        }
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
     } else {
         NavHost(navController = navController, startDestination = startDestination!!) {
+            // AUTH
+            composable(Routes.ONBOARDING) { OnboardingScreen({ navController.navigate(Routes.LOGIN) }, { navController.navigate(Routes.REGISTER) }) }
+            composable(Routes.LOGIN) { LoginScreen({ navController.popBackStack() }, { navController.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } } }, { navController.navigate(Routes.REGISTER) }) }
+            composable(Routes.REGISTER) { RegisterScreen({ navController.popBackStack() }, { navController.navigate(Routes.LOGIN) }) }
 
-            // 1. ONBOARDING
-            composable(Routes.ONBOARDING) {
-                OnboardingScreen(
-                    onLoginClick = { navController.navigate(Routes.LOGIN) },
-                    onRegisterClick = { navController.navigate(Routes.REGISTER) }
-                )
-            }
-
-            // 2. LOGIN
-            composable(Routes.LOGIN) {
-                LoginScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onLoginSuccess = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.ONBOARDING) { inclusive = true }
-                        }
-                    },
-                    onRegisterClick = { navController.navigate(Routes.REGISTER) }
-                )
-            }
-
-            // 3. REGISTER
-            composable(Routes.REGISTER) {
-                RegisterScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onRegisterSuccess = { navController.navigate(Routes.LOGIN) }
-                )
-            }
-
-            // 4. HOME SCREEN (BAGIAN YANG ERROR TADI)
+            // UTAMA
             composable(Routes.HOME) {
                 HomeScreen(
-                    onFoodClick = { foodId ->
-                        navController.navigate("menu_detail/$foodId")
-                    },
-                    onCartClick = {
-                        navController.navigate(Routes.ORDER)
-                    },
-                    onProfileClick = {
-                        navController.navigate(Routes.PROFILE)
-                    },
-                    // --- INI YANG KURANG TADI ---
-                    onMenuClick = {
-                        navController.navigate(Routes.MENU)
-                    }
-                )
-            }
-
-            // 5. MENU SCREEN (HALAMAN BARU)
-            composable(Routes.MENU) {
-                MenuScreen(
-                    onFoodClick = { foodId ->
-                        navController.navigate("menu_detail/$foodId")
-                    },
+                    onFoodClick = { id -> navController.navigate("menu_detail/$id") },
                     onCartClick = { navController.navigate(Routes.ORDER) },
                     onProfileClick = { navController.navigate(Routes.PROFILE) },
-                    onHomeClick = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = true }
-                        }
-                    }
+                    onMenuClick = { category -> navController.navigate("menu?category=$category") }
                 )
             }
 
-            // 6. MENU DETAIL
+            // MENU
+            composable(
+                route = Routes.MENU,
+                arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = "Semua"; nullable = true })
+            ) { entry ->
+                MenuScreen(
+                    initialCategory = entry.arguments?.getString("category") ?: "Semua",
+                    onFoodClick = { id -> navController.navigate("menu_detail/$id") },
+                    onCartClick = { navController.navigate(Routes.ORDER) },
+                    onProfileClick = { navController.navigate(Routes.PROFILE) },
+                    onHomeClick = { navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } } }
+                )
+            }
+
+            // MENU DETAIL
             composable(
                 route = Routes.MENU_DETAIL,
-                arguments = listOf(navArgument("foodId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val foodId = backStackEntry.arguments?.getInt("foodId")
-                val food = dummyFoods.find { it.id == foodId }
-
-                if (food != null) {
-                    MenuDetailScreen(
-                        food = food,
-                        onBack = { navController.popBackStack() }, // Fungsi tombol Back
-                        onAddToCart = { 
-                            // Pindah ke halaman Order/Keranjang
-                            navController.navigate(Routes.ORDER) 
-                        }
-                    )
+                arguments = listOf(navArgument("foodId") { type = NavType.StringType })
+            ) { entry ->
+                val id = entry.arguments?.getString("foodId")
+                if (id != null) {
+                    MenuDetailScreen(foodId = id, onBack = { navController.popBackStack() }, onAddToCart = { navController.navigate(Routes.ORDER) })
                 }
             }
 
-            // 7. ORDER SCREEN
+            // ORDER (Menyambung ke History jika sukses)
             composable(Routes.ORDER) {
                 OrderScreen(
                     onBack = { navController.popBackStack() },
-                    onProcess = { /* Nanti lanjut ke pembayaran */ },
-                    // Tambahan Navigasi Bottom Bar:
-                    onHomeClick = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = true }
-                        }
-                    },
-                    onMenuClick = {
-                        navController.navigate(Routes.MENU)
-                    },
-                    onProfileClick = {
-                        navController.navigate(Routes.PROFILE)
-                    }
+                    onProcess = { navController.navigate(Routes.HISTORY) }, // SUKSES -> KE HISTORY
+                    onHomeClick = { navController.navigate(Routes.HOME) },
+                    onMenuClick = { navController.navigate("menu?category=Semua") },
+                    onProfileClick = { navController.navigate(Routes.PROFILE) }
                 )
             }
 
-            // 8. PROFILE SCREEN
+            // PROFILE (Menyambung ke History & Admin)
             composable(Routes.PROFILE) {
                 ProfileScreen(
-                    onLogout = {
-                        auth.signOut()
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    // Navigasi Bottom Bar
-                    onHomeClick = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = true }
-                        }
-                    },
-                    onMenuClick = {
-                        navController.navigate(Routes.MENU)
-                    },
-                    onCartClick = {
-                        navController.navigate(Routes.ORDER)
-                    }
+                    onLogout = { auth.signOut(); navController.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } } },
+                    onHomeClick = { navController.navigate(Routes.HOME) },
+                    onMenuClick = { navController.navigate("menu?category=Semua") },
+                    onCartClick = { navController.navigate(Routes.ORDER) },
+                    onAdminClick = { navController.navigate(Routes.ADMIN_HOME) },
+                    onHistoryClick = { navController.navigate(Routes.HISTORY) } // KLIK HISTORY
                 )
+            }
+
+            // LAYAR HISTORY BARU
+            composable(Routes.HISTORY) {
+                HistoryScreen(onBack = { navController.popBackStack() })
+            }
+
+            // ADMIN
+            composable(Routes.ADMIN_HOME) {
+                AdminMenuListScreen(
+                    onAddClick = { navController.navigate("admin_form") },
+                    onEditClick = { id -> navController.navigate("admin_form?foodId=$id") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route = Routes.ADMIN_FORM,
+                arguments = listOf(navArgument("foodId") { type = NavType.StringType; nullable = true })
+            ) { entry ->
+                AdminFormScreen(foodId = entry.arguments?.getString("foodId"), onBack = { navController.popBackStack() })
             }
         }
     }
