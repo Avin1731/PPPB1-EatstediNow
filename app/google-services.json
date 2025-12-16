@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "474940301418",
-    "project_id": "eatstedinow",
-    "storage_bucket": "eatstedinow.firebasestorage.app"
+    "project_number": "491901105778",
+    "project_id": "eatstedinows",
+    "storage_bucket": "eatstedinows.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:474940301418:android:179de62134cbf85a1f2a13",
+        "mobilesdk_app_id": "1:491901105778:android:63714deff11a08bd9274eb",
         "android_client_info": {
           "package_name": "com.example.eatstedinow"
         }
       },
       "oauth_client": [
         {
-          "client_id": "474940301418-dcs4og61v2bh6edk2qsic7c44prgad7j.apps.googleusercontent.com",
+          "client_id": "491901105778-rsgqmjc78e2fo4t5sav5barn4sh3u9em.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.eatstedinow",
-            "certificate_hash": "8b85d2aef04fb405547fbb20434fd82c6c84b398"
+            "certificate_hash": "473f98492c7b91a1d69b718c6e230bca60696578"
           }
         },
         {
-          "client_id": "474940301418-bl0vr7g9qepevq62pfadh66rif07mm81.apps.googleusercontent.com",
+          "client_id": "491901105778-b37i5qdsmfngc16840uhvul1vkor1p6n.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyD8-JEojzZ0c-yV34rE7EuisLz2V1ziRKA"
+          "current_key": "AIzaSyCgryBcutiEWl9aD5jdPDTxjOM_y43HhJA"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "474940301418-bl0vr7g9qepevq62pfadh66rif07mm81.apps.googleusercontent.com",
+              "client_id": "491901105778-75ov9lo2np0549d9lbogrmucvsrs8rb4.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

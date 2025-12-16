@@ -72,7 +72,10 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.4.0") // Versi stabil
 
-    // 3. Analytics (Opsional)
+    // 3. Firestore
+    implementation("com.google.firebase:firebase-firestore")
+
+    // 4. Analytics (Opsional)
     implementation("com.google.firebase:firebase-analytics")
 
     // Library untuk Splash Screen kustom
